@@ -35,11 +35,14 @@ class ebuBits :
         ipGetter = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         try:
             ipGetter.connect(("8.8.8.8", 80))
-            ip = ipGetter.getsockname()[]
-        expect Exception:
+            ip = ipGetter.getsockname()[0]
+        
+        except Exception:
             ip = "127.0.0.1"
+        
         finally:
             ipGetter.close()
+        
         return ip
 
     def sendPocket(self, destination,  data):
