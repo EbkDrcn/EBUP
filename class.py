@@ -3,10 +3,10 @@ import json
 import threading
 import time
 
-class ebuBits :
+class EBUProtocol :
     defaultPort = 1302
-    starterBit = "EB-S"
-    enderBit = "EB-E"
+    starterBit = "EBUP-S-v1"
+    enderBit = "EBUP-E-v1"
 
     ackQuery = {"type":"ack_query", "data":"ack_check"}
     ackAffirmative = {"type":"ack_query", "data":"ack_affirmative"}
@@ -14,17 +14,18 @@ class ebuBits :
     def __init__(self, systemID = None, systemPort = defaultPort):
         if systemID is None:
             systemID = getLocalIP()
+            self.systemID = systemID
         else:
             self.systemID = systemID
             
         self.systemPort = systemPort
-        print(f"Your ebuBits session is initializing. Your system ID is {self.systemID} and your port is {self.systemPort}")
+        print(f"EBUP interface initialized. Your system ID is {self.systemID} and your port is {self.systemPort}")
         self.buffer = []
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
         try:
-            self.socket.bind(('127.0.0.1', self.systemPort))
-            print(f"Sistem {systemID} established. Port {self.systemPort}")
+            self.socket.bind(('0.0.0.0', self.systemPort))
+            print(f"System {systemID} established. Port {self.systemPort}")
         except OSError:
             print(f"Error establishing port {self.systemPort}, already in use")
 
@@ -115,12 +116,3 @@ class ebuBits :
             time.sleep(0.1)
         print(f"Request to system {destination} timed out")
         return False
-
-
-
-        
-
-
-
-
-
