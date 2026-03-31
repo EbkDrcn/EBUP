@@ -10,10 +10,14 @@ class EBUProtocol :
 
     ackQuery = {"type":"ack_query", "data":"ack_check"}
     ackAffirmative = {"type":"ack_query", "data":"ack_affirmative"}
+    msgRecieved = {"type":"msgInfo", "data":"msg_recieved"}
+    msgTypeError = {"type":"msgInfo", "data":"msg_returned_type_error"}
+    discoverySearch = {"type":"discovery", "data":"discovery"}
+    discoveryAns = {"type":"discovery", "data":"discovery_here"}
 
     def __init__(self, systemID = None, systemPort = defaultPort):
         if systemID is None:
-            systemID = getLocalIP()
+            systemID = self.getLocalIP()
             self.systemID = systemID
         else:
             self.systemID = systemID
@@ -92,14 +96,30 @@ class EBUProtocol :
                         print(f"{senderID} system checked if you are available, response given as available")
 
                     elif payload == self.ackAffirmative:
-                        self.buffer.append(f"ACK_RESPONSE_POSITIVE_{senderID}") 
+                        self.buffer.append(f"ACK_RESPONSE_POSITIVE_{senderID}")
+
+                    elif payload == self.msgRecieved:
+                        print(f"Your last message to {senderID} is sended") 
+
+                    elif payload == self.discoverySearch:
+                        self.sendPocket(senderID, self.discoveryAns)
+                        print(f"Discovery search from {sender ID} , answered.")
+
+                    elif payload == self.discoveryAns:
+                        self.buffer.append(f"DISCOVERY_ANS_FROM_{senderID}")
+                        print(f"Discovery answer from {senderID}")
+
+                    elif payload.get("type") == "msg":
+                        print(f"\n [!] Mesaj alındı. Kaynak : {senderID}")
+                        print(f"İçerik : {payload.get("data")} \n")
+                        self.sendPocket(senderID,self.msgRecieved)
 
                     else:
-                        print(f"\n [!] Mesaj alındı. Kaynak : {senderID}")
-                        print(f"İçerik : {payload} \n")
+                        print(f"Unknown type of message recieved.")
+                        self.sendPocket(senderID, self.msgTypeError)
                 
                 else:
-                    print(f"Başkasına gönderilen bir mesaj bulundu")
+                    print(f"There is a message to somebody else on the network")
 
     def isAvailable(self, destination, timeout = 3):
         self.sendPocket(destination, self.ackQuery)
@@ -116,3 +136,11 @@ class EBUProtocol :
             time.sleep(0.1)
         print(f"Request to system {destination} timed out")
         return False
+
+    def discovery(timeout):
+        self.sendPocket("255.255.255.255", self.discoverySearch)
+        discoveryTimer = time.time()
+
+        while time.time() - discoveryTimer < timeout:
+            if discoveryAns in self.buffer: 
+                
