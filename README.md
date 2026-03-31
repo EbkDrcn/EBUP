@@ -1,4 +1,5 @@
 🛰️ ebuBits Protocol
+
 ebuBits, Python ile yazılmış, hafif ve temel (basic) seviyede bir ağ iletişim protokolüdür. Karmaşık güvenlik katmanlarından arındırılmış, doğrudan "veriyi gönder ve al" mantığına odaklanan eğitimsel ve hobi amaçlı bir projedir.
 
 🛠️ Nasıl Çalışır? (Packet Structure)
@@ -40,6 +41,7 @@ Listener: listenForever() fonksiyonu ayrı bir Thread üzerinde çalışır. Sü
 Parser: parsePacket(packet) fonksiyonu gelen veriyi kontrol eder; başlangıç/bitiş bitlerini doğrular ve mesajı ilgili işleme yönlendirir.
 
 🔄 Özellikler
+
 ✅ ACK (Onay Mekanizması)
 
 Sistemin çevrimiçi olup olmadığını test etmek için kullanılır:
