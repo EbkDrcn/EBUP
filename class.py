@@ -3,11 +3,13 @@ import json
 import threading
 import time
 
-starterBit = "STARTERBIT/WELCOMETOEBUBITSCOMM"
-enderBit = "ENDERBIT/GOODBYEFROMEBUBITSCOMM"
-
 class ebuBits :
     defaultPort = 1302
+    starterBit = "EB-S"
+    enderBit = "EB-E"
+
+    ackQuery = {"type":"ack_query", "data":"ack_check"}
+    ackAffirmative = {"type":"ack_query", "data":"ack_affirmative"}
 
     def __init__(self, systemID = None, systemPort = defaultPort):
         if systemID is None:
@@ -46,10 +48,23 @@ class ebuBits :
         return ip
 
     def sendPocket(self, destination,  data):
-        packet = [starterBit + self.systemID + destination + data + enderBit]
-        jsonPacket = json.dumps(packet).encode("utf-8")
 
-        self.socket.sendto(jsonPacket, ('127.0.0.1', self.systemPort))
+        if not isinstance(data,dict):
+            data = {"type":"msg", "data":data}
+
+        packet = [  self.starterBit,
+                    self.systemID,
+                    destination,
+                    data,
+                    self.enderBit]
+
+        jsonPacket = json.dumps(packet).encode("utf-8")
+        
+        try:
+            self.socket.sendto(jsonPacket, (destination, self.systemPort))
+
+        except Exception as e:
+            print(f"Error : {e}")
 
     def listenForever(self):
         while self.running:
@@ -63,19 +78,19 @@ class ebuBits :
                 pass
 
     def parsePacket(self, packet):
-        if packet[0] == starterBit:
+        if packet[0] == self.starterBit:
             senderID = packet[1]
             destinationID = packet[2]
             payload = packet[3]
 
-            if packet[-1] == enderBit:
+            if packet[-1] == self.enderBit:
                 if destinationID == self.systemID:
 
-                    if payload == "isAvailableCheck":
-                        self.sendPocket(senderID, "ACK_POSITIVE")
+                    if payload == self.ackQuery:
+                        self.sendPocket(senderID, self.ackAffirmative)
                         print(f"{senderID} system checked if you are available, response given as available")
 
-                    elif payload == "ACK_POSITIVE":
+                    elif payload == self.ackAffirmative:
                         self.buffer.append(f"ACK_RESPONSE_POSITIVE_{senderID}") 
 
                     else:
@@ -86,16 +101,16 @@ class ebuBits :
                     print(f"Başkasına gönderilen bir mesaj bulundu")
 
     def isAvailable(self, destination, timeout = 3):
-        self.sendPocket(destination, "isAvailableCheck")
+        self.sendPocket(destination, self.ackQuery)
         ackTimer = time.time()
         echoTimer = time.perf_counter()
 
-        requestedACK = f"ACK_RESPONSE_POSITIVE_{destination}"
+        expectedACK = f"ACK_RESPONSE_POSITIVE_{destination}"
         while time.time() - ackTimer < timeout :
-            if requestedACK in self.buffer:
+            if expectedACK in self.buffer:
                 latency = (time.perf_counter() - echoTimer)*1000
                 print(f"{destination} system is available. Latency -> {latency:.2f} ms")
-                self.buffer.remove(requestedACK)
+                self.buffer.remove(expectedACK)
                 return True
             time.sleep(0.1)
         print(f"Request to system {destination} timed out")
