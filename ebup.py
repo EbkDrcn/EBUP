@@ -23,9 +23,12 @@ class EBUProtocol :
             self.systemID = systemID
             
         self.systemPort = systemPort
+
         print(f"EBUP interface initialized. Your system ID is {self.systemID} and your port is {self.systemPort}")
+        
         self.buffer = []
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.socket.socketopt(socket.SOL_SOCKET, socket.SOL_BROADCAST, 1)
 
         try:
             self.socket.bind(('0.0.0.0', self.systemPort))
@@ -103,7 +106,7 @@ class EBUProtocol :
 
                     elif payload == self.discoverySearch:
                         self.sendPocket(senderID, self.discoveryAns)
-                        print(f"Discovery search from {sender ID} , answered.")
+                        print(f"Discovery search from {sender_ID} , answered.")
 
                     elif payload == self.discoveryAns:
                         self.buffer.append(f"DISCOVERY_ANS_FROM_{senderID}")
@@ -137,10 +140,29 @@ class EBUProtocol :
         print(f"Request to system {destination} timed out")
         return False
 
-    def discovery(timeout):
+    def discovery(self, timeout):
         self.sendPocket("255.255.255.255", self.discoverySearch)
         discoveryTimer = time.time()
-
+        expectedDiscovery = "DISCOVERY_ANS_FROM_"
+        print(f"Discovery call for {timeout} seconds.")
+        
         while time.time() - discoveryTimer < timeout:
-            if discoveryAns in self.buffer: 
-                
+            for item in list(self.buffer):
+                if isinstance(item, str) and item.startswith(expectedDiscovery):
+                    foundIP = item.replace(expectedDiscovery, "")
+
+                    if foundIP not in answers:
+                        answers.append(foundIP)
+                        print(f"System {foundIP} answered")
+                    
+                    self.buffer.remove(item)
+            time.sleep(0.1)
+
+        if not answers:
+            print(f"There is no answer to discovery call")
+        else:
+            print(f"There is {lenght(answers)} answers and from {answers}")
+        
+        return answers
+
+                        
