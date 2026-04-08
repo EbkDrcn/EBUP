@@ -1,59 +1,215 @@
-E.B.U.P. (Extensible Binary User Protocol)
-A lightweight, asynchronous, and dependency-free UDP networking layer for distributed systems.
+# EBUP - Extensible Binary User Protocol
 
-EBUP, Python ile yazılmış, hafif ve temel (basic) seviyede bir ağ iletişim protokolüdür. Karmaşık güvenlik katmanlarından arındırılmış, doğrudan "veriyi gönder ve al" mantığına odaklanan eğitimsel ve hobi amaçlı bir projedir.
+---
 
-🛠️ Nasıl Çalışır? (Packet Structure)
-ebuBits, her veriyi özel bir paket yapısına sarar. Paketler ağ üzerinden JSON formatında transfer edilir:
+## 📖 English Documentation
 
+### Overview
+
+**EBUP** (Extensible Binary User Protocol) is a lightweight, UDP-based network communication protocol designed for peer-to-peer communication between systems over a network. It provides features such as system discovery, acknowledgment queries, priority messaging, and automatic packet handling using threading.
+
+**No External Dependencies**: EBUP is a dependency-free protocol that uses only Python's standard library (socket, json, threading, time). No external packages are required.
+
+### Key Features
+
+- **UDP-Based Communication**: Uses UDP sockets for fast, connectionless communication
+- **Automatic Discovery**: Broadcast-based discovery to find other EBUP systems on the network
+- **Acknowledgment System**: Check if remote systems are available and measure latency
+- **Priority Messaging**: Send messages with priority flag for immediate attention
+- **Threaded Listener**: Runs a background listener thread to continuously receive incoming packets
+- **Address Book**: Maintains a record of discovered systems with metadata
+- **Packet Structure**: Standardized JSON-based packet format with starter/end bits for validation
+
+### Class: EBUProtocol
+
+#### Constructor
+```python
+EBUProtocol(systemID=None, systemPort=defaultPort)
+```
+- **systemID**: Unique identifier for this system (defaults to local IP)
+- **systemPort**: UDP port to listen on (default: 1302)
+
+Initializes the EBUP interface, binds to the specified port, and starts the listener thread.
+
+#### Key Methods
+
+**`sendPocket(destination, data, priority=False)`**
+- Sends a packet to a destination system
+- `destination`: IP address of the target system
+- `data`: Message content (dict or any data type)
+- `priority`: If True, marks the message as priority
+
+**`isAvailable(destination, timeout=3)`**
+- Checks if a remote system is available and responsive
+- Returns True if available, False on timeout
+- Measures and displays latency in milliseconds
+
+**`discovery(timeout)`**
+- Broadcasts a discovery signal to find all EBUP systems on the network
+- Waits for responses within the specified timeout (seconds)
+- Returns a list of discovered system IPs
+
+**`updateAddressBook(answers)`**
+- Adds discovered systems to the address book
+- Records IP address and creation timestamp
+
+**`getLocalIP()` (Static Method)**
+- Automatically detects the local IP address
+- Fallback to localhost (127.0.0.1) if detection fails
+
+### Packet Structure
+
+Packets are structured as JSON arrays:
+```
 [starterBit, senderID, destinationID, payload, enderBit]
+```
 
-starterBit: Protokolün başlangıcını temsil eden sabit dizin.
+### Message Types
 
-senderID: Gönderen cihazın kimliği (IP adresi).
+- **ack_query**: Acknowledgment check request
+- **ack_affirmative**: Acknowledgment confirmation
+- **discovery**: Discovery broadcast message
+- **discovery_here**: Discovery response
+- **msg**: Regular message
+- **msgInfo**: Message status information
 
-destinationID: Hedef cihazın kimliği.
+### Default Configuration
 
-payload: Taşınan asıl veri/mesaj.
+- Default Port: 1302
+- Starter Bit: "EBUP-S-v1"
+- Ender Bit: "EBUP-E-v1"
 
-enderBit: Protokolün bittiğini temsil eden sabit dizin.
+### Example Usage
 
-🚀 Hızlı Başlangıç (Usage)
-1. Client Oluşturma
+```python
+from ebup import EBUProtocol
 
-Bir istemci oluşturmak için ebuBits sınıfını çağırmanız yeterlidir.
+# Create EBUP interface
+ebup = EBUProtocol()
 
-Python
-yourClient = ebuBits(systemID=None, systemPort=1302)
-systemID: İsteğe bağlıdır. Boş bırakılırsa cihazın Yerel IP (Local IP) adresini otomatik olarak kimlik olarak atar.
+# Check if a system is available
+ebup.isAvailable("192.168.1.100", timeout=3)
 
-systemPort: İsteğe bağlıdır. Varsayılan olarak 1302 portunu kullanır.
+# Discover systems on network
+discovered_systems = ebup.discovery(timeout=5)
 
-2. Paket Gönderme
+# Send a message
+ebup.sendPocket("192.168.1.100", {"data": "Hello!"})
 
-Belirli bir hedefe veri göndermek için:
+# Send a priority message
+ebup.sendPocket("192.168.1.100", "Urgent message", priority=True)
+```
 
-Python
-yourClient.sendPacket(destination="192.168.1.15", payload="Merhaba Dünya!")
-3. Dinleme ve Ayrıştırma (Listener & Parser)
+---
 
-Listener: listenForever() fonksiyonu ayrı bir Thread üzerinde çalışır. Sürekli gelen JSON paketlerini dinler ve işlenmek üzere ayrıştırıcıya (Parser) gönderir.
+## 📖 Türkçe Dokumentasyon
 
-Parser: parsePacket(packet) fonksiyonu gelen veriyi kontrol eder; başlangıç/bitiş bitlerini doğrular ve mesajı ilgili işleme yönlendirir.
+### Genel Bakış
 
-🔄 Özellikler
+**EBUP** (Ether-Based UDP Protocol), ağ üstündeki sistemler arasında eş-seviyesi (peer-to-peer) iletişim sağlamak için tasarlanmış hafif, UDP tabanlı bir protokoldür. Sistem keşfi, onay sorguları, öncelikli mesajlaşma ve threading kullanarak otomatik paket işleme gibi özellikler sunar.
+**Dış Kütüphane Bağımlılığı Yok**: EBUP, yalnızca Python'ın standart kütüphanelerini (socket, json, threading, time) kullanan, tamamen bağımlılıktan bağımsız bir protokoldür. Herhangi bir harici paket kurulumuna gerek yoktur.
+### Temel Özellikler
 
-✅ ACK (Onay Mekanizması)
+- **UDP Tabanlı İletişim**: Hızlı, bağlantısız iletişim için UDP soketleri kullanır
+- **Otomatik Keşif**: Ağ üstündeki diğer EBUP sistemlerini bulmak için broadcast tabanlı keşif
+- **Onay Sistemi**: Uzak sistemlerin müsait olup olmadığını kontrol eder ve gecikme süresini ölçer
+- **Öncelikli Mesajlaşma**: Acil dikkat gerektiren mesajları önceli olarak gönderebilir
+- **Arkaplan Dinleyicisi**: Gelen paketleri sürekli olarak almak için arka planda çalışan bir iş parçacığı
+- **Adres Defteri**: Keşfedilen sistemlerin kaydını metaveri ile birlikte tutar
+- **Paket Yapısı**: Doğrulama için başlangıç/bitiş bitleri ile standardlaştırılmış JSON tabanlı paket formatı
 
-Sistemin çevrimiçi olup olmadığını test etmek için kullanılır:
+### Sınıf: EBUProtocol
 
-Python
-if yourClient.isAvailable("192.168.1.20"):
-    print("Sistem çevrimiçi!")
-Bu fonksiyon, hedefe özel bir sorgu paketi gönderir ve belirli bir süre boyunca yanıt (ACK) bekler.
+#### Yapıcı (Constructor)
+```python
+EBUProtocol(systemID=None, systemPort=defaultPort)
+```
+- **systemID**: Bu sistem için benzersiz tanımlayıcı (varsayılan: yerel IP)
+- **systemPort**: Dinlenecek UDP portu (varsayılan: 1302)
 
-🧵 Çoklu İş Parçacığı (Multithreading)
+EBUP arayüzünü başlatır, belirtilen porta bağlanır ve dinleyici iş parçacığını başlatır.
 
-Eşzamanlı iletişim için dinleme işlemi ana programı dondurmadan arka planda (daemon thread) gerçekleşir.
+#### Temel Yöntemler
 
-Not: ebuBits şu an için şifreleme veya GUI (Arayüz) barındırmamaktadır. Geliştirilmeye açık, temel seviye bir protokoldür
+**`sendPocket(destination, data, priority=False)`**
+- Hedef sisteme bir paket gönderir
+- `destination`: Hedef sistemin IP adresi
+- `data`: Mesaj içeriği (dict veya herhangi bir veri türü)
+- `priority`: True ise mesajı öncelikli olarak işaretler
+
+**`isAvailable(destination, timeout=3)`**
+- Uzak bir sistemin müsait olup olmadığını ve yanıt verip vermediğini kontrol eder
+- Müsaitse True, zaman aşımında False döndürür
+- Gecikme süresini milisaniye cinsinden ölçer ve gösterir
+
+**`discovery(timeout)`**
+- Ağ üstündeki tüm EBUP sistemlerini bulmak için keşif sinyali yayınlar
+- Belirtilen zaman aşımı süresi içinde (saniye) yanıtları bekler
+- Keşfedilen sistem IP adreslerinin bir listesini döndürür
+
+**`updateAddressBook(answers)`**
+- Keşfedilen sistemleri adres defterine ekler
+- IP adresi ve oluşturma zamanını kaydeder
+
+**`getLocalIP()` (Statik Yöntem)**
+- Yerel IP adresini otomatik olarak algılar
+- Algılama başarısız olursa localhost'a (127.0.0.1) geri döner
+
+### Paket Yapısı
+
+Paketler JSON dizileri olarak yapılandırılır:
+```
+[starterBit, senderID, destinationID, payload, enderBit]
+```
+
+### Mesaj Türleri
+
+- **ack_query**: Onay kontrol isteği
+- **ack_affirmative**: Onay onaylaması
+- **discovery**: Keşif yayın mesajı
+- **discovery_here**: Keşif yanıtı
+- **msg**: Normal mesaj
+- **msgInfo**: Mesaj durum bilgisi
+
+### Varsayılan Yapılandırma
+
+- Varsayılan Port: 1302
+- Başlangıç Biti: "EBUP-S-v1"
+- Bitiş Biti: "EBUP-E-v1"
+
+### Kullanım Örneği
+
+```python
+from ebup import EBUProtocol
+
+# EBUP arayüzü oluştur
+ebup = EBUProtocol()
+
+# Bir sistemin müsait olup olmadığını kontrol et
+ebup.isAvailable("192.168.1.100", timeout=3)
+
+# Ağ üstünde sistemleri keşfet
+discovered_systems = ebup.discovery(timeout=5)
+
+# Mesaj gönder
+ebup.sendPocket("192.168.1.100", {"data": "Merhaba!"})
+
+# Öncelikli mesaj gönder
+ebup.sendPocket("192.168.1.100", "Acil mesaj", priority=True)
+```
+
+---
+
+## 📋 Teknik Detaylar / Technical Details
+
+### Buffer Mechanism / Tampon Mekanizması
+- Gelen yanıtlar ve keşif cevapları buffer listesinde saklanır
+- Asenkron işlem için sistem tarafından kontrol edilir
+
+### Threading / İş Parçacığı
+- Dinleyici daemon thread'i arka planda çalışır
+- Ana programı engellemeyen bağımsız ağ kontrolü sağlar
+
+### Error Handling / Hata Yönetimi
+- Port bağlama hatasını yakalar ve bunu kullanan başka bir işlemi bildiriyor
+- IP algılamada başarısız olursa 127.0.0.1'e geri döner
