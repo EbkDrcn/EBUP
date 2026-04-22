@@ -46,6 +46,14 @@ class EBUProtocol :
         self.listenerThread = threading.Thread(target=self.listenForever, daemon=True)
         self.listenerThread.start()
 
+        self.handlers = {
+            "msg" : self._handleMsg,
+            "discovery" : self._handleDiscovery,
+            "ack_query" : self._handleAckQuery,
+            "msgInfo" : self._handleMsgInfo,
+            "remoteInfo" : self._handleRemoteInfo
+        }
+
     @staticmethod
     def getLocalIP():
         ipGetter = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -92,6 +100,28 @@ class EBUProtocol :
 
             except Exception as e:
                 pass
+
+    def newParser(self, packet):
+        if packet [0] != self.starterBit or packet[-1] != self.enderBit:
+            return
+
+        senderID = packet[1]
+        destinationID = packet[2]
+        payload = packet[3]
+
+        if destinationID == self.systemID:
+            payloadType = payload.get("type")
+            handler = self.handlers.get(payloadType)
+
+            if handler:
+                handler(senderID, payload)
+            else:
+                print(f"Unknown message type received. Message type : {payloadType}")
+                self.sendPocket(senderID, self.msgTypeError)
+        else :
+            print("There is a message for somebody else on the network")
+
+         
 
     def parsePacket(self, packet):
         if packet[0] == self.starterBit:
