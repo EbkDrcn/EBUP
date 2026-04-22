@@ -15,7 +15,7 @@ class EBUProtocol :
     msgTypeError = {"type":"msgInfo", "data":"msg_returned_type_error"}
     discoverySearch = {"type":"discovery", "data":"discovery"}
     discoveryAns = {"type":"discovery", "data":"discovery_here"}
-    versionResponse = {"type:remoteInfo", "version":"1"}
+    versionResponse = {"type:remoteInfo", "version":self.version}
     versionCheck = {"type":"remoteInfo", "data":"versionCheck"}
     message = {"type":"msg", "data":"", "priority":False}
 
