@@ -7,6 +7,7 @@ class EBUProtocol :
     defaultPort = 1302
     starterBit = "EBUP-S-v1"
     enderBit = "EBUP-E-v1"
+    version = 1
 
     ackQuery = {"type":"ack_query", "data":"ack_check"}
     ackAffirmative = {"type":"ack_query", "data":"ack_affirmative"}
@@ -14,6 +15,8 @@ class EBUProtocol :
     msgTypeError = {"type":"msgInfo", "data":"msg_returned_type_error"}
     discoverySearch = {"type":"discovery", "data":"discovery"}
     discoveryAns = {"type":"discovery", "data":"discovery_here"}
+    versionResponse = {"type:remoteInfo", "version":"1"}
+    versionCheck = {"type":"remoteInfo", "data":"versionCheck"}
     message = {"type":"msg", "data":"", "priority":False}
 
     addressBook = []
@@ -116,6 +119,12 @@ class EBUProtocol :
                     elif payload == self.discoveryAns:
                         self.buffer.append(f"DISCOVERY_ANS_FROM_{senderID}")
                         print(f"Discovery answer from {senderID}")
+
+                    elif payload == self.versionCheck:
+                        self.sendPocket(senderID, self.versionResponse)
+
+                    elif payload.get("type") ==  "remoteInfo":
+                        print(f"Remote machine is running on EBUP version {payload.get("version")})
 
                     elif payload.get("type") == "msg":
                         print(f"\n [!] Mesaj alındı. Kaynak : {senderID}")
