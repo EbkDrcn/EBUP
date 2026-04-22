@@ -15,7 +15,6 @@ class EBUProtocol :
     msgTypeError = {"type":"msgInfo", "data":"msg_returned_type_error"}
     discoverySearch = {"type":"discovery", "data":"discovery"}
     discoveryAns = {"type":"discovery", "data":"discovery_here"}
-    versionResponse = {"type:remoteInfo", "version":self.version}
     versionCheck = {"type":"remoteInfo", "data":"versionCheck"}
     message = {"type":"msg", "data":"", "priority":False}
 
@@ -34,7 +33,8 @@ class EBUProtocol :
         
         self.buffer = []
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.socket.setsocketopt(socket.SOL_SOCKET, socket.SOL_BROADCAST, 1)
+        self.socket.setsockopt(socket.SOL_SOCKET, socket.SOL_BROADCAST, 1)
+        self.setAddressBook = True
 
         try:
             self.socket.bind(('0.0.0.0', self.systemPort))
@@ -121,10 +121,11 @@ class EBUProtocol :
                         print(f"Discovery answer from {senderID}")
 
                     elif payload == self.versionCheck:
-                        self.sendPocket(senderID, self.versionResponse)
+                        versionResponse = {"type":"remoteInfo", "version":self.version}
+                        self.sendPocket(senderID, versionResponse)
 
                     elif payload.get("type") ==  "remoteInfo":
-                        print(f"Remote machine is running on EBUP version {payload.get("version")})
+                        print(f"Remote machine is running on EBUP version {payload.get('version')}")
 
                     elif payload.get("type") == "msg":
                         print(f"\n [!] Mesaj alındı. Kaynak : {senderID}")
@@ -184,16 +185,16 @@ class EBUProtocol :
         if self.setAddressBook == True:
             self.updateAddressBook(answers)
         else:
-            self.adressBook = []
+            self.addressBook = []
 
         return answers
     
     def updateAddressBook(self, answers):
-        for i in range(len(answers)):
-            if answers[i] not in self.adressBook and answers[i] != self.systemID:
-                self.adressBook.append({"ipAdress":answers[i], "createdTime":time.time()})
+        for ip in answers:
+            if not any(item["ipAddress"] == ip for item in self.addressBook) and ip != self.systemID:
+                self.addressBook.append({"ipAddress":ip, "createdTime":time.time()})
 
-        return self.adressBook
+        return self.addressBook
     
     
         
