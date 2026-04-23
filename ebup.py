@@ -2,20 +2,23 @@ import socket
 import json
 import threading
 import time
+import handlers
 
 class EBUProtocol :
     defaultPort = 1302
     starterBit = "EBUP-S-v1"
     enderBit = "EBUP-E-v1"
     version = 1
+    doNotDisturb = False
 
     ackQuery = {"type":"ack_query", "data":"ack_check"}
     ackAffirmative = {"type":"ack_query", "data":"ack_affirmative"}
+    ackNegative = {"type":"ack_query", "data":"ack_negative"}
     msgRecieved = {"type":"msgInfo", "data":"msg_recieved"}
     msgTypeError = {"type":"msgInfo", "data":"msg_returned_type_error"}
     discoverySearch = {"type":"discovery", "data":"discovery"}
     discoveryAns = {"type":"discovery", "data":"discovery_here"}
-    versionCheck = {"type":"remoteInfo", "data":"versionCheck"}
+    versionCheck = {"type":"discovery", "data":"versionCheck"}
     message = {"type":"msg", "data":"", "priority":False}
 
     addressBook = []
@@ -47,11 +50,10 @@ class EBUProtocol :
         self.listenerThread.start()
 
         self.handlers = {
-            "msg" : self.handleMsg,
-            "discovery" : self.handleDiscovery,
-            "ack_query" : self.handleAckQuery,
-            "msgInfo" : self.handleMsgInfo,
-            "remoteInfo" : self.handleRemoteInfo
+            "msg" : handlers.handleMsg,
+            "discovery" : handlers.handleDiscovery,
+            "ack_query" : handlers.handleAckQuery,
+            "msgInfo" : handlers.handleMsgInfo
         }
 
     @staticmethod
@@ -101,7 +103,7 @@ class EBUProtocol :
             except Exception as e:
                 pass
 
-    def newParser(self, packet):
+    def parsePacket(self, packet):
         if packet [0] != self.starterBit or packet[-1] != self.enderBit:
             return
 
@@ -114,62 +116,12 @@ class EBUProtocol :
             handler = self.handlers.get(payloadType)
 
             if handler:
-                handler(senderID, payload)
+                handler(self ,senderID, payload)
             else:
                 print(f"Unknown message type received. Message type : {payloadType}")
                 self.sendPocket(senderID, self.msgTypeError)
         else :
             print("There is a message for somebody else on the network")
-
-         
-
-    def parsePacket(self, packet):
-        if packet[0] == self.starterBit:
-            senderID = packet[1]
-            destinationID = packet[2]
-            payload = packet[3]
-
-            if packet[-1] == self.enderBit:
-                if destinationID == self.systemID:
-
-                    if payload == self.ackQuery:
-                        self.sendPocket(senderID, self.ackAffirmative)
-                        print(f"{senderID} system checked if you are available, response given as available")
-
-                    elif payload == self.ackAffirmative:
-                        self.buffer.append(f"ACK_RESPONSE_POSITIVE_{senderID}")
-
-                    elif payload == self.msgRecieved:
-                        print(f"Your priority message to {senderID} is sended") 
-
-                    elif payload == self.discoverySearch:
-                        self.sendPocket(senderID, self.discoveryAns)
-                        print(f"Discovery search from {senderID} , answered.")
-
-                    elif payload == self.discoveryAns:
-                        self.buffer.append(f"DISCOVERY_ANS_FROM_{senderID}")
-                        print(f"Discovery answer from {senderID}")
-
-                    elif payload == self.versionCheck:
-                        versionResponse = {"type":"remoteInfo", "version":self.version}
-                        self.sendPocket(senderID, versionResponse)
-
-                    elif payload.get("type") ==  "remoteInfo":
-                        print(f"Remote machine is running on EBUP version {payload.get('version')}")
-
-                    elif payload.get("type") == "msg":
-                        print(f"\n [!] Mesaj alındı. Kaynak : {senderID}")
-                        print(f"İçerik : {payload.get("data")} \n")
-
-                    else:
-                        print(f"Unknown type of message recieved.")
-                        self.sendPocket(senderID, self.msgTypeError)
-                
-                    if payload.get("priority") == True:
-                        self.sendPocket(senderID, self.msgRecieved)
-
-                else:
-                    print(f"There is a message to somebody else on the network")
 
     def isAvailable(self, destination, timeout = 3):
         self.sendPocket(destination, self.ackQuery)
@@ -177,12 +129,19 @@ class EBUProtocol :
         echoTimer = time.perf_counter()
 
         expectedACK = f"ACK_RESPONSE_POSITIVE_{destination}"
+        negativeACK = f"ACK_RESPONSE_NEGATIVE_{destination}"
+
         while time.time() - ackTimer < timeout :
             if expectedACK in self.buffer:
                 latency = (time.perf_counter() - echoTimer)*1000
                 print(f"{destination} system is available. Latency -> {latency:.2f} ms")
                 self.buffer.remove(expectedACK)
                 return True
+            elif negativeACK in self.buffer:
+                latency = (time.perf_counter() - echoTimer)*1000
+                print(f"{destination} system is not available. Latency -> {latency:.2f} ms")
+                self.buffer.remove(negativeACK)
+                return False
             time.sleep(0.1)
         print(f"Request to system {destination} timed out")
         return False
