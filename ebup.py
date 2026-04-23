@@ -47,11 +47,11 @@ class EBUProtocol :
         self.listenerThread.start()
 
         self.handlers = {
-            "msg" : self._handleMsg,
-            "discovery" : self._handleDiscovery,
-            "ack_query" : self._handleAckQuery,
-            "msgInfo" : self._handleMsgInfo,
-            "remoteInfo" : self._handleRemoteInfo
+            "msg" : self.handleMsg,
+            "discovery" : self.handleDiscovery,
+            "ack_query" : self.handleAckQuery,
+            "msgInfo" : self.handleMsgInfo,
+            "remoteInfo" : self.handleRemoteInfo
         }
 
     @staticmethod
