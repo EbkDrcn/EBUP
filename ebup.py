@@ -5,15 +5,17 @@ import time
 
 import handlers
 from constants import EBUPConstants
+import utils
 
 class EBUProtocol(EBUPConstants) :
     doNotDisturb = False
-
+    defaultPort = EBUPConstants.defaultPort
+    
     addressBook = []
 
     def __init__(self, systemID = None, systemPort = defaultPort):
         if systemID is None:
-            systemID = self.getLocalIP()
+            systemID = utils.getLocalIP()
             self.systemID = systemID
         else:
             self.systemID = systemID
@@ -43,21 +45,6 @@ class EBUProtocol(EBUPConstants) :
             "ack_query" : handlers.handleAckQuery,
             "msgInfo" : handlers.handleMsgInfo
         }
-
-    @staticmethod
-    def getLocalIP():
-        ipGetter = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        try:
-            ipGetter.connect(("8.8.8.8", 80))
-            ip = ipGetter.getsockname()[0]
-        
-        except Exception:
-            ip = "127.0.0.1"
-        
-        finally:
-            ipGetter.close()
-        
-        return ip
 
     def sendPocket(self, destination,  data, priority = False):
         if priority == True:
@@ -92,7 +79,7 @@ class EBUProtocol(EBUPConstants) :
                 pass
 
     def parsePacket(self, packet):
-        if packet [0] != self.starterBit or packet[-1] != self.enderBit:
+        if not utils.packetValidator(self, packet):
             return
 
         senderID = packet[1]
@@ -160,18 +147,9 @@ class EBUProtocol(EBUPConstants) :
             print(f"There is {len(answers)} answers and from {answers}")
         
         if self.setAddressBook == True:
-            self.updateAddressBook(answers)
+            utils.updateAddressBook(answers)
         else:
             self.addressBook = []
 
         return answers
     
-    def updateAddressBook(self, answers):
-        for ip in answers:
-            if not any(item["ipAddress"] == ip for item in self.addressBook) and ip != self.systemID:
-                self.addressBook.append({"ipAddress":ip, "createdTime":time.time()})
-
-        return self.addressBook
-    
-    
-        

@@ -8,6 +8,7 @@ class EBUPConstants:
     discoveryAns = {"type":"discovery", "data":"discovery_here"}
     versionCheck = {"type":"discovery", "data":"versionCheck"}
     message = {"type":"msg", "data":"", "priority":False}
+    chunkedMessage = {"type":"chunk", "index":0, "total":0, "data":"", "msgID":0}
 
     defaultPort = 1302
     starterBit = "EBUP-S-v1"
