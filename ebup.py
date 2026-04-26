@@ -25,6 +25,7 @@ class EBUProtocol(EBUPConstants) :
         print(f"EBUP interface initialized. Your system ID is {self.systemID} and your port is {self.systemPort}")
         
         self.buffer = []
+        self.chunkBuffer = []
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SOL_BROADCAST, 1)
         self.setAddressBook = True
@@ -47,11 +48,17 @@ class EBUProtocol(EBUPConstants) :
         }
 
     def sendPocket(self, destination,  data, priority = False):
+        if not isinstance(data,dict):
+            if not isinstance(data, str):
+                data = str(data)
+            data = {"type":"msg", "data":data}
+        
         if priority == True:
             data["priority"] = True
 
-        if not isinstance(data,dict):
-            data = {"type":"msg", "data":data, "priority":priority}
+        if not data.get("type") == "chunk" and len(data["data"].encode("utf-8")) > 1024:
+            sendChunk(destination, data["data"])
+            return
 
         packet = [  self.starterBit,
                     self.systemID,
@@ -59,13 +66,7 @@ class EBUProtocol(EBUPConstants) :
                     data,
                     self.enderBit]
 
-        jsonPacket = json.dumps(packet).encode("utf-8")
-        
-        try:
-            self.socket.sendto(jsonPacket, (destination, self.systemPort))
-
-        except Exception as e:
-            print(f"Error : {e}")
+        sendJson(packet)
 
     def listenForever(self):
         while self.running:
@@ -152,4 +153,33 @@ class EBUProtocol(EBUPConstants) :
             self.addressBook = []
 
         return answers
+
+    def sendChunk(destination, data):
+        data, totalChunks, msgID = utils.splitData(data)
+
+        for i in range(0,totalChunks):
+            payload = self.chunkedMessage.copy()
+            payload["msgID"] = msgID
+            payload["total"] = totalChunks
+            payload["index"] = i
+            payload["data"] = data[i]
+
+            packet = [  self.starterBit,
+                        self.systemID,
+                        destination,
+                        payload,
+                        self.enderBit]
+
+            sendJson(packet)
+            time.sleep(0.1)
+
+    def sendJson(packet):
+        destination = packet[2]
+        jsonPacket = json.dumps(packet).encode("utf-8")
+        try:
+            self.socket.sendto(jsonPacket, (destination, self.systemPort))
+
+        except Exception as e:
+            print(f"Error : {e}")
+
     
