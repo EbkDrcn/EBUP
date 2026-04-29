@@ -35,3 +35,21 @@ def handleAckQuery(protocol, senderID, payload):
         protocol.buffer.append(f"ACK_RESPONSE_POSITIVE_{senderID}")
     elif payload == protocol.ackNegative:
         protocol.buffer.append(f"ACK_RESPONSE_NEGATIVE_{senderID}")
+
+def handleChunk(protocol, senderID, payload): 
+    msgID = payload.get("msgID")
+    total = payload.get("total")
+    index = payload.get("index")
+    chunkData = payload.get("data")
+
+    if msgID not in protocol.chunkBuffer:
+        protocol.chunkBuffer[msgID] = [None] * total
+    protocol.chunkBuffer[msgID][index] = chunkData
+
+    if None not in protocol.chunkBuffer[msgID]:
+        originalData = "".join(protocol.chunkBuffer[msgID])
+        
+        print(f"\n[!] A chunked message recieved. ")
+        print(f"Kaynak: {senderID} | İçerik: {originalData}\n")
+
+        del protocol.chunkBuffer[msgID]

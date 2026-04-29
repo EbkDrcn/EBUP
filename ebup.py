@@ -25,7 +25,7 @@ class EBUProtocol(EBUPConstants) :
         print(f"EBUP interface initialized. Your system ID is {self.systemID} and your port is {self.systemPort}")
         
         self.buffer = []
-        self.chunkBuffer = []
+        self.chunkBuffer = {}
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SOL_BROADCAST, 1)
         self.setAddressBook = True
@@ -57,7 +57,7 @@ class EBUProtocol(EBUPConstants) :
             data["priority"] = True
 
         if not data.get("type") == "chunk" and len(data["data"].encode("utf-8")) > 1024:
-            sendChunk(destination, data["data"])
+            self.sendChunk(destination, data["data"])
             return
 
         packet = [  self.starterBit,
@@ -66,7 +66,7 @@ class EBUProtocol(EBUPConstants) :
                     data,
                     self.enderBit]
 
-        sendJson(packet)
+        self.sendJson(packet)
 
     def listenForever(self):
         while self.running:
@@ -154,7 +154,7 @@ class EBUProtocol(EBUPConstants) :
 
         return answers
 
-    def sendChunk(destination, data):
+    def sendChunk(self, destination, data):
         data, totalChunks, msgID = utils.splitData(data)
 
         for i in range(0,totalChunks):
@@ -170,10 +170,10 @@ class EBUProtocol(EBUPConstants) :
                         payload,
                         self.enderBit]
 
-            sendJson(packet)
+            self.sendJson(packet)
             time.sleep(0.1)
 
-    def sendJson(packet):
+    def sendJson(self, packet):
         destination = packet[2]
         jsonPacket = json.dumps(packet).encode("utf-8")
         try:
